@@ -9,7 +9,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { ShoppingItem } from '@/app/api/shopping-list/route';
+import {ShoppingItem} from "@/app/api/shopping-list/data-service";
 
 export default function ShoppingList() {
     const [items, setItems] = useState<ShoppingItem[]>([]);

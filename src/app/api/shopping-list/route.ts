@@ -1,4 +1,3 @@
-// src/app/api/shopping-list/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getData, saveData, ShoppingItem } from './data-service';
 
