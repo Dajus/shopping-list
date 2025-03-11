@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
     Container, Typography, Box, TextField, Button, List,
     ListItem, ListItemText, ListItemSecondaryAction, IconButton,
-    Checkbox, Paper, Divider, InputAdornment,
+    Checkbox, Paper, Divider,
     Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
