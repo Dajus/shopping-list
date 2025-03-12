@@ -199,7 +199,7 @@ export default function ShoppingList() {
         <Container maxWidth="sm" sx={{ padding: 0 }}>
           <Paper elevation={7} sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-              <Typography variant="h4" component="h1" gutterBottom>
+              <Typography variant="h5" component="h1" gutterBottom>
                 Nákupní seznam
               </Typography>
               <Stack direction="row" alignItems="center">
