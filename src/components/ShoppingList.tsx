@@ -184,7 +184,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Formátování data do kompaktnějšího formátu
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return `${date.getDate()}.${date.getMonth() + 1}.`
@@ -351,6 +350,7 @@ export default function ShoppingList() {
                             minWidth: '35%',
                             textAlign: 'left',
                           }}
+                          suppressHydrationWarning
                         >
                           {formatDate(item.createdAt)}
                         </Typography>

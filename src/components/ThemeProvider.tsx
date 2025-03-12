@@ -3,22 +3,18 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 
-// Typy pro kontext
 type ThemeContextType = {
   mode: 'light' | 'dark'
   toggleTheme: () => void
 }
 
-// Vytvoření kontextu s výchozími hodnotami
 const ThemeContext = createContext<ThemeContextType>({
   mode: 'dark',
   toggleTheme: () => {},
 })
 
-// Hook pro použití tématu
 export const useTheme = () => useContext(ThemeContext)
 
-// Definice tmavého tématu
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -35,7 +31,6 @@ const darkTheme = createTheme({
   },
 })
 
-// Definice světlého tématu
 const lightTheme = createTheme({
   palette: {
     mode: 'light',
@@ -52,28 +47,32 @@ const lightTheme = createTheme({
   },
 })
 
-// Komponenta poskytovatele tématu
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Stav pro režim tématu, výchozí je tmavý
   const [mode, setMode] = useState<'light' | 'dark'>('dark')
+  const [mounted, setMounted] = useState(false)
 
-  // Funkce pro přepínání režimu
-  const toggleTheme = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'))
-    // Uložit nastavení do localStorage
-    localStorage.setItem('theme', mode === 'light' ? 'dark' : 'light')
-  }
-
-  // Načtení uloženého tématu při prvním vykreslení
   useEffect(() => {
+    // Načtení tématu z localStorage pouze na klientovi
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
     if (savedTheme) {
       setMode(savedTheme)
     }
+    setMounted(true)
   }, [])
 
-  // Vybrat aktivní téma
+  const toggleTheme = () => {
+    setMode((prevMode) => {
+      const newMode = prevMode === 'light' ? 'dark' : 'light'
+      localStorage.setItem('theme', newMode)
+      return newMode
+    })
+  }
+
   const theme = mode === 'light' ? lightTheme : darkTheme
+
+  if (!mounted) {
+    return <div style={{ visibility: 'hidden' }}>{children}</div>
+  }
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>
