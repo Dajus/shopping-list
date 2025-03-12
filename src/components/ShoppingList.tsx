@@ -18,10 +18,9 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import Brightness4Icon from '@mui/icons-material/Brightness4'
-import Brightness7Icon from '@mui/icons-material/Brightness7'
 import { ShoppingItem } from '@/app/api/shopping-list/data-service'
 import { useTheme } from '@/components/ThemeProvider'
+import SettingsMenu from '@/components/SettingsMenu'
 
 export default function ShoppingList() {
   const [items, setItems] = useState<ShoppingItem[]>([])
@@ -129,6 +128,7 @@ export default function ShoppingList() {
     }
   }
 
+  // Smazání položky
   const deleteItem = async (id: string) => {
     try {
       await fetch(`/api/shopping-list?id=${id}`, {
@@ -140,6 +140,31 @@ export default function ShoppingList() {
     }
   }
 
+  // Smazání všech položek
+  const deleteAllItems = async () => {
+    try {
+      await fetch('/api/shopping-list/clear', {
+        method: 'DELETE',
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při mazání všech položek:', error)
+    }
+  }
+
+  // Smazání dokončených položek
+  const deleteCompletedItems = async () => {
+    try {
+      await fetch('/api/shopping-list/clear-completed', {
+        method: 'DELETE',
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při mazání dokončených položek:', error)
+    }
+  }
+
+  // Manuální obnovení seznamu
   const refreshList = () => {
     setLoading(true)
     fetchItems()
@@ -165,6 +190,9 @@ export default function ShoppingList() {
     return `${date.getDate()}.${date.getMonth() + 1}.`
   }
 
+  const hasItems = items.length > 0
+  const hasCompletedItems = items.some((item) => item.completed)
+
   return (
     <Stack sx={getBackgroundPattern()}>
       <Stack display="flex" justifyContent="center" alignItems="center" mt={{ xs: 2, sm: 4 }}>
@@ -178,9 +206,14 @@ export default function ShoppingList() {
                 <IconButton onClick={refreshList} color="primary" aria-label="obnovit seznam" sx={{ mr: 1 }}>
                   <RefreshIcon />
                 </IconButton>
-                <IconButton onClick={toggleTheme} color="inherit" aria-label="přepnout téma">
-                  {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-                </IconButton>
+                <SettingsMenu
+                  mode={mode}
+                  toggleTheme={toggleTheme}
+                  deleteAllItems={deleteAllItems}
+                  deleteCompletedItems={deleteCompletedItems}
+                  hasItems={hasItems}
+                  hasCompletedItems={hasCompletedItems}
+                />
               </Stack>
             </Stack>
 
@@ -315,7 +348,7 @@ export default function ShoppingList() {
                           sx={{
                             color: 'text.disabled',
                             whiteSpace: 'nowrap',
-                            minWidth: '30%',
+                            minWidth: '35%',
                             textAlign: 'left',
                           }}
                         >
