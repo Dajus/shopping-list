@@ -48,31 +48,27 @@ export default function ShoppingList() {
     }
   }
 
-  // Načtení při prvním renderu a nastavení auto-refresh
   useEffect(() => {
     fetchItems()
 
-    // Nastavení auto-refresh každých 10 sekund
+    // Nastavení auto-refresh každých 20 sekund
     const interval = setInterval(() => {
       fetchItems()
-    }, 10000)
+    }, 20000)
 
     setRefreshInterval(interval)
 
-    // Cleanup při unmount
     return () => {
       if (refreshInterval) clearInterval(refreshInterval)
     }
   }, [])
 
-  // Fokus do pole pro jméno, když se zobrazí formulář
   useEffect(() => {
     if (isAdding && nameInputRef.current) {
       nameInputRef.current.focus()
     }
   }, [isAdding])
 
-  // Přidání položky
   const addItem = async () => {
     if (!newItemName.trim()) return
 
@@ -87,11 +83,9 @@ export default function ShoppingList() {
         }),
       })
 
-      // Reset formuláře
       setNewItemName('')
       setNewItemDescription('')
 
-      // Necháme formulář zobrazený pro případné další přidání
       if (nameInputRef.current) {
         nameInputRef.current.focus()
       }
@@ -102,7 +96,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Handler pro klávesové zkratky při zadávání
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
@@ -114,7 +107,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Označení položky jako hotové
   const toggleItem = async (id: string, completed: boolean) => {
     try {
       await fetch('/api/shopping-list', {
@@ -128,7 +120,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Smazání položky
   const deleteItem = async (id: string) => {
     try {
       await fetch(`/api/shopping-list?id=${id}`, {
@@ -140,7 +131,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Smazání všech položek
   const deleteAllItems = async () => {
     try {
       await fetch('/api/shopping-list/clear', {
@@ -152,7 +142,6 @@ export default function ShoppingList() {
     }
   }
 
-  // Smazání dokončených položek
   const deleteCompletedItems = async () => {
     try {
       await fetch('/api/shopping-list/clear-completed', {
@@ -164,13 +153,11 @@ export default function ShoppingList() {
     }
   }
 
-  // Manuální obnovení seznamu
   const refreshList = () => {
     setLoading(true)
     fetchItems()
   }
 
-  // Generování vzoru pozadí podle tématu
   const getBackgroundPattern = () => {
     const dotColor = mode === 'dark' ? '444444' : '9C92AC'
     const bgColor = muiTheme.palette.background.default
@@ -313,7 +300,6 @@ export default function ShoppingList() {
                       />
 
                       <Stack direction="row" spacing={1} sx={{ width: '100%', alignItems: 'center' }}>
-                        {/* Hlavní obsah položky */}
                         <Box sx={{ flexGrow: 1, maxWidth: 'calc(100% - 80px)' }}>
                           <Typography
                             variant="body1"
@@ -338,10 +324,8 @@ export default function ShoppingList() {
                           )}
                         </Box>
 
-                        {/* Vertikální oddělovač */}
                         <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
-                        {/* Datum přidání */}
                         <Typography
                           variant="caption"
                           sx={{
