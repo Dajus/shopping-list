@@ -51,8 +51,7 @@ export async function getData(): Promise<ShoppingListData> {
     return localStorageData;
 }
 
-// Funkce pro ukládání dat
-async function saveData(data: ShoppingListData): Promise<void> {
+export async function saveData(data: ShoppingListData): Promise<void> {
     // Aktualizace lokální kopie v každém případě
     localStorageData = data;
 
