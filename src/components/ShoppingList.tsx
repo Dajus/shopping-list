@@ -1,263 +1,335 @@
-'use client';
-import { useState, useEffect } from 'react';
+'use client'
+import { useState, useEffect, useRef } from 'react'
 import {
-    Container, Typography, Box, TextField, Button, List,
-    ListItem, ListItemText, ListItemSecondaryAction, IconButton,
-    Checkbox, Paper, Divider,
-    Dialog, DialogTitle, DialogContent, DialogActions, Stack
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import {ShoppingItem} from "@/app/api/shopping-list/data-service";
+  Container,
+  Typography,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  IconButton,
+  Checkbox,
+  Paper,
+  Divider,
+  Stack,
+  useTheme as useMuiTheme,
+  Box,
+} from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
+import AddIcon from '@mui/icons-material/Add'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import Brightness4Icon from '@mui/icons-material/Brightness4'
+import Brightness7Icon from '@mui/icons-material/Brightness7'
+import { ShoppingItem } from '@/app/api/shopping-list/data-service'
+import { useTheme } from '@/components/ThemeProvider'
 
 export default function ShoppingList() {
-    const [items, setItems] = useState<ShoppingItem[]>([]);
-    const [newItemName, setNewItemName] = useState('');
-    const [newItemQuantity, setNewItemQuantity] = useState(1);
-    const [newItemDescription, setNewItemDescription] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [openDialog, setOpenDialog] = useState(false);
-    const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [items, setItems] = useState<ShoppingItem[]>([])
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemDescription, setNewItemDescription] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
+  const [isAdding, setIsAdding] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
-    // Načtení seznamu
-    const fetchItems = async () => {
-        try {
-            const response = await fetch('/api/shopping-list');
-            const data = await response.json();
-            setItems(data.items || []);
-            setLoading(false);
-        } catch (error) {
-            console.error('Chyba při načítání položek:', error);
-            setLoading(false);
-        }
-    };
+  // Získání tématu z kontextu
+  const { mode, toggleTheme } = useTheme()
+  const muiTheme = useMuiTheme()
 
-    // Načtení při prvním renderu a nastavení auto-refresh
-    useEffect(() => {
-        fetchItems();
+  // Načtení seznamu
+  const fetchItems = async () => {
+    try {
+      const response = await fetch('/api/shopping-list')
+      const data = await response.json()
+      setItems(data.items || [])
+      setLoading(false)
+    } catch (error) {
+      console.error('Chyba při načítání položek:', error)
+      setLoading(false)
+    }
+  }
 
-        // Nastavení auto-refresh každých 10 sekund
-        const interval = setInterval(() => {
-            fetchItems();
-        }, 10000);
+  // Načtení při prvním renderu a nastavení auto-refresh
+  useEffect(() => {
+    fetchItems()
 
-        setRefreshInterval(interval);
+    // Nastavení auto-refresh každých 10 sekund
+    const interval = setInterval(() => {
+      fetchItems()
+    }, 10000)
 
-        // Cleanup při unmount
-        return () => {
-            if (refreshInterval) clearInterval(refreshInterval);
-        };
-    }, []);
+    setRefreshInterval(interval)
 
-    // Přidání položky
-    const addItem = async () => {
-        if (!newItemName.trim()) return;
+    // Cleanup při unmount
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval)
+    }
+  }, [])
 
-        try {
-            await fetch('/api/shopping-list', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newItemName,
-                    quantity: newItemQuantity,
-                    description: newItemDescription
-                })
-            });
+  // Fokus do pole pro jméno, když se zobrazí formulář
+  useEffect(() => {
+    if (isAdding && nameInputRef.current) {
+      nameInputRef.current.focus()
+    }
+  }, [isAdding])
 
-            // Reset formuláře
-            setNewItemName('');
-            setNewItemQuantity(1);
-            setNewItemDescription('');
-            setOpenDialog(false);
+  // Přidání položky
+  const addItem = async () => {
+    if (!newItemName.trim()) return
 
-            fetchItems();
-        } catch (error) {
-            console.error('Chyba při přidávání položky:', error);
-        }
-    };
+    try {
+      await fetch('/api/shopping-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newItemName,
+          quantity: 1, // Defaultní hodnota, už nepoužíváme
+          description: newItemDescription,
+        }),
+      })
 
-    // Označení položky jako hotové
-    const toggleItem = async (id: string, completed: boolean) => {
-        try {
-            await fetch('/api/shopping-list', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, completed: !completed })
-            });
-            fetchItems();
-        } catch (error) {
-            console.error('Chyba při označování položky:', error);
-        }
-    };
+      // Reset formuláře
+      setNewItemName('')
+      setNewItemDescription('')
 
-    // Smazání položky
-    const deleteItem = async (id: string) => {
-        try {
-            await fetch(`/api/shopping-list?id=${id}`, {
-                method: 'DELETE',
-            });
-            fetchItems();
-        } catch (error) {
-            console.error('Chyba při mazání položky:', error);
-        }
-    };
+      // Necháme formulář zobrazený pro případné další přidání
+      if (nameInputRef.current) {
+        nameInputRef.current.focus()
+      }
 
-    // Manuální obnovení seznamu
-    const refreshList = () => {
-        setLoading(true);
-        fetchItems();
-    };
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při přidávání položky:', error)
+    }
+  }
 
-    return (
-       <Stack display="flex" justifyContent="center" alignItems="center" mt={{xs: 2, sm: 4}}>
-           <Container maxWidth="sm" sx={{padding: 0}}>
-               <Paper elevation={7} sx={{ p: 2 }}>
-                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                       <Typography variant="h4" component="h1" gutterBottom>
-                           Nákupní seznam
-                       </Typography>
-                       <IconButton onClick={refreshList} color="primary" aria-label="obnovit seznam">
-                           <RefreshIcon />
-                       </IconButton>
-                   </Box>
+  // Handler pro klávesové zkratky při zadávání
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      addItem()
+    } else if (event.key === 'Escape') {
+      setIsAdding(false)
+      setNewItemName('')
+      setNewItemDescription('')
+    }
+  }
 
-                   <Button
-                       variant="contained"
-                       color="primary"
-                       startIcon={<AddIcon />}
-                       fullWidth
-                       onClick={() => setOpenDialog(true)}
-                       sx={{ mb: 3 }}
-                   >
-                       Přidat položku
-                   </Button>
+  // Označení položky jako hotové
+  const toggleItem = async (id: string, completed: boolean) => {
+    try {
+      await fetch('/api/shopping-list', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !completed }),
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při označování položky:', error)
+    }
+  }
 
-                   <Divider sx={{ mb: 2 }} />
+  const deleteItem = async (id: string) => {
+    try {
+      await fetch(`/api/shopping-list?id=${id}`, {
+        method: 'DELETE',
+      })
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při mazání položky:', error)
+    }
+  }
 
-                   {loading ? (
-                       <Typography align="center" sx={{ py: 3 }}>Načítání...</Typography>
-                   ) : (
-                       <List>
-                           {items.length === 0 ? (
-                               <Typography align="center" color="textSecondary" sx={{ py: 3 }}>
-                                   Seznam je prázdný
-                               </Typography>
-                           ) : (
-                               items.map((item) => (
-                                   <ListItem key={item.id} divider sx={{ py: 2 }} onClick={() => toggleItem(item.id, item.completed)}>
-                                       <Checkbox
-                                           checked={item.completed || false}
-                                           onChange={(e) => {
-                                               e.stopPropagation()
-                                               toggleItem(item.id, item.completed)
-                                           }}
-                                           edge="start"
-                                       />
-                                       <ListItemText
-                                           primary={
-                                               <Typography
-                                                   variant="body1"
-                                                   sx={{
-                                                       textDecoration: item.completed ? 'line-through' : 'none',
-                                                       color: item.completed ? 'text.secondary' : 'text.primary'
-                                                   }}
-                                               >
-                                                   {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
-                                               </Typography>
-                                           }
-                                           secondary={
-                                               <Box component="div">
-                                                   {item.description &&
-                                                       <Typography
-                                                           variant="body2"
-                                                           sx={{
-                                                               textDecoration: item.completed ? 'line-through' : 'none',
-                                                               color: item.completed ? 'text.disabled' : 'text.secondary'
-                                                           }}
-                                                       >
-                                                           {item.description}
-                                                       </Typography>
-                                                   }
-                                                   <Typography
-                                                       variant="caption"
-                                                       sx={{
-                                                           display: 'block',
-                                                           mt: item.description ? 1 : 0,
-                                                           color: 'text.disabled'
-                                                       }}
-                                                   >
-                                                       Přidáno: {new Date(item.createdAt).toLocaleDateString('cs-CZ')}
-                                                   </Typography>
-                                               </Box>
-                                           }
-                                           secondaryTypographyProps={{
-                                               sx: {
-                                                   textDecoration: item.completed ? 'line-through' : 'none',
-                                               }
-                                           }}
-                                       />
-                                       <ListItemSecondaryAction>
-                                           <IconButton edge="end" onClick={() => deleteItem(item.id)} color="error">
-                                               <DeleteIcon />
-                                           </IconButton>
-                                       </ListItemSecondaryAction>
-                                   </ListItem>
-                               ))
-                           )}
-                       </List>
-                   )}
-               </Paper>
+  const refreshList = () => {
+    setLoading(true)
+    fetchItems()
+  }
 
-               {/* Dialog pro přidání nové položky */}
-               <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-                   <DialogTitle>Přidat položku do nákupního seznamu</DialogTitle>
-                   <DialogContent>
-                       <TextField
-                           autoFocus
-                           margin="dense"
-                           id="name"
-                           label="Jméno"
-                           type="text"
-                           fullWidth
-                           variant="outlined"
-                           value={newItemName}
-                           onChange={(e) => setNewItemName(e.target.value)}
-                           sx={{ mb: 2 }}
-                       />
-                       <TextField
-                           margin="dense"
-                           id="quantity"
-                           label="Počet"
-                           type="number"
-                           fullWidth
-                           variant="outlined"
-                           value={newItemQuantity}
-                           onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
-                           InputProps={{
-                               inputProps: { min: 1 }
-                           }}
-                           sx={{ mb: 2 }}
-                       />
-                       <TextField
-                           margin="dense"
-                           id="description"
-                           label="Popisek (volitelné)"
-                           type="text"
-                           fullWidth
-                           multiline
-                           rows={2}
-                           variant="outlined"
-                           value={newItemDescription}
-                           onChange={(e) => setNewItemDescription(e.target.value)}
-                       />
-                   </DialogContent>
-                   <DialogActions>
-                       <Button onClick={() => setOpenDialog(false)}>Zrušit</Button>
-                       <Button onClick={addItem} variant="contained" color="primary">Přidat</Button>
-                   </DialogActions>
-               </Dialog>
-           </Container>
-       </Stack>
-    );
+  // Generování vzoru pozadí podle tématu
+  const getBackgroundPattern = () => {
+    const dotColor = mode === 'dark' ? '444444' : '9C92AC'
+    const bgColor = muiTheme.palette.background.default
+
+    return {
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${dotColor}' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E")`,
+      backgroundColor: bgColor,
+      minHeight: '100vh',
+      width: '100%',
+      padding: '20px',
+    }
+  }
+
+  // Formátování data do kompaktnějšího formátu
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return `${date.getDate()}.${date.getMonth() + 1}.`
+  }
+
+  return (
+    <Stack sx={getBackgroundPattern()}>
+      <Stack display="flex" justifyContent="center" alignItems="center" mt={{ xs: 2, sm: 4 }}>
+        <Container maxWidth="sm" sx={{ padding: 0 }}>
+          <Paper elevation={7} sx={{ p: 2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Nákupní seznam
+              </Typography>
+              <Stack direction="row" alignItems="center">
+                <IconButton onClick={refreshList} color="primary" aria-label="obnovit seznam" sx={{ mr: 1 }}>
+                  <RefreshIcon />
+                </IconButton>
+                <IconButton onClick={toggleTheme} color="inherit" aria-label="přepnout téma">
+                  {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+              </Stack>
+            </Stack>
+
+            {/* Inline přidávací formulář */}
+            {isAdding ? (
+              <Stack spacing={2} mb={3}>
+                <TextField
+                  inputRef={nameInputRef}
+                  fullWidth
+                  label="Co je potřeba koupit?"
+                  variant="outlined"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Např. Mléko"
+                  size="small"
+                />
+                <TextField
+                  fullWidth
+                  label="Poznámka (volitelné)"
+                  variant="outlined"
+                  value={newItemDescription}
+                  onChange={(e) => setNewItemDescription(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Např. 2 litry, polotučné"
+                  size="small"
+                  multiline
+                  rows={2}
+                />
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setIsAdding(false)
+                      setNewItemName('')
+                      setNewItemDescription('')
+                    }}
+                  >
+                    Zrušit
+                  </Button>
+                  <Button variant="contained" color="primary" onClick={addItem} disabled={!newItemName.trim()}>
+                    Přidat položku
+                  </Button>
+                </Stack>
+              </Stack>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                fullWidth
+                onClick={() => setIsAdding(true)}
+                sx={{ mb: 3 }}
+              >
+                Přidat položku
+              </Button>
+            )}
+
+            <Divider sx={{ mb: 2 }} />
+
+            {loading ? (
+              <Typography align="center" sx={{ py: 3 }}>
+                Načítání...
+              </Typography>
+            ) : (
+              <List>
+                {items.length === 0 ? (
+                  <Typography align="center" color="textSecondary" sx={{ py: 3 }}>
+                    Seznam je prázdný
+                  </Typography>
+                ) : (
+                  items.map((item) => (
+                    <ListItem
+                      key={item.id}
+                      divider
+                      sx={{ py: 1, px: 1 }}
+                      onClick={() => toggleItem(item.id, item.completed)}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteItem(item.id)
+                          }}
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <Checkbox
+                        checked={item.completed || false}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          toggleItem(item.id, item.completed)
+                        }}
+                        edge="start"
+                      />
+
+                      <Stack direction="row" spacing={1} sx={{ width: '100%', alignItems: 'center' }}>
+                        {/* Hlavní obsah položky */}
+                        <Box sx={{ flexGrow: 1, maxWidth: 'calc(100% - 80px)' }}>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              textDecoration: item.completed ? 'line-through' : 'none',
+                              color: item.completed ? 'text.secondary' : 'text.primary',
+                            }}
+                          >
+                            {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
+                          </Typography>
+
+                          {item.description && (
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                textDecoration: item.completed ? 'line-through' : 'none',
+                                color: item.completed ? 'text.disabled' : 'text.secondary',
+                              }}
+                            >
+                              {item.description}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Vertikální oddělovač */}
+                        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                        {/* Datum přidání */}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'text.disabled',
+                            whiteSpace: 'nowrap',
+                            minWidth: '30%',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {formatDate(item.createdAt)}
+                        </Typography>
+                      </Stack>
+                    </ListItem>
+                  ))
+                )}
+              </List>
+            )}
+          </Paper>
+        </Container>
+      </Stack>
+    </Stack>
+  )
 }
