@@ -51,7 +51,8 @@ export async function getData(): Promise<ShoppingListData> {
     return localStorageData;
 }
 
-export async function saveData(data: ShoppingListData): Promise<void> {
+// Funkce pro ukládání dat
+async function saveData(data: ShoppingListData): Promise<void> {
     // Aktualizace lokální kopie v každém případě
     localStorageData = data;
 
@@ -59,7 +60,12 @@ export async function saveData(data: ShoppingListData): Promise<void> {
     if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
         try {
             const client = await getRedisClient();
-            await client.set('shopping-list', JSON.stringify(data));
+
+            // Nastavení dat s expirací 30 dní (v sekundách)
+            // 30 dní * 24 hodin * 60 minut * 60 sekund = 2592000 sekund
+            await client.set('shopping-list', JSON.stringify(data), {
+                EX: 2592000 // 30 dní v sekundách
+            });
         } catch (error) {
             console.error('Redis error:', error);
         }
