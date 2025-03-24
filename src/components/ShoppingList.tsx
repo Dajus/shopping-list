@@ -14,8 +14,13 @@ import {
   Stack,
   useTheme as useMuiTheme,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { ShoppingItem } from '@/app/api/shopping-list/data-service'
@@ -30,6 +35,12 @@ export default function ShoppingList() {
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
+
+  // Stav pro editaci položky
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null)
+  const [editedName, setEditedName] = useState('')
+  const [editedDescription, setEditedDescription] = useState('')
 
   // Získání tématu z kontextu
   const { mode, toggleTheme } = useTheme()
@@ -131,6 +142,35 @@ export default function ShoppingList() {
     }
   }
 
+  // Funkce pro otevření dialogu editace
+  const openEditDialog = (item: ShoppingItem) => {
+    setEditingItem(item)
+    setEditedName(item.name)
+    setEditedDescription(item.description || '')
+    setEditDialogOpen(true)
+  }
+
+  // Funkce pro uložení změn
+  const saveEditedItem = async () => {
+    if (!editingItem || !editedName.trim()) return
+
+    try {
+      await fetch('/api/shopping-list', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingItem.id,
+          name: editedName,
+          description: editedDescription,
+        }),
+      })
+      setEditDialogOpen(false)
+      fetchItems()
+    } catch (error) {
+      console.error('Chyba při aktualizaci položky:', error)
+    }
+  }
+
   const deleteAllItems = async () => {
     try {
       await fetch('/api/shopping-list/clear', {
@@ -203,7 +243,6 @@ export default function ShoppingList() {
               </Stack>
             </Stack>
 
-            {/* Inline přidávací formulář */}
             {isAdding ? (
               <Stack spacing={2} mb={3}>
                 <TextField
@@ -278,16 +317,29 @@ export default function ShoppingList() {
                       sx={{ py: 1, px: 1 }}
                       onClick={() => toggleItem(item.id, item.completed)}
                       secondaryAction={
-                        <IconButton
-                          edge="end"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteItem(item.id)
-                          }}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                        <Box>
+                          <IconButton
+                            edge="end"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openEditDialog(item)
+                            }}
+                            color="primary"
+                            sx={{ mr: 1 }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            edge="end"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteItem(item.id)
+                            }}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
                       }
                     >
                       <Checkbox
@@ -331,7 +383,7 @@ export default function ShoppingList() {
                           sx={{
                             color: 'text.disabled',
                             whiteSpace: 'nowrap',
-                            minWidth: '35%',
+                            minWidth: '45%',
                             textAlign: 'left',
                           }}
                           suppressHydrationWarning
@@ -347,6 +399,41 @@ export default function ShoppingList() {
           </Paper>
         </Container>
       </Stack>
+
+      {/* Dialog pro editaci položky */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+        <DialogTitle>Upravit položku</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Název"
+            type="text"
+            fullWidth
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            sx={{ mb: 2, mt: 1 }}
+          />
+          <TextField
+            margin="dense"
+            label="Poznámka (volitelné)"
+            type="text"
+            fullWidth
+            value={editedDescription}
+            onChange={(e) => setEditedDescription(e.target.value)}
+            multiline
+            rows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)} color="primary">
+            Zrušit
+          </Button>
+          <Button onClick={saveEditedItem} color="primary" variant="contained" disabled={!editedName.trim()}>
+            Uložit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   )
 }
